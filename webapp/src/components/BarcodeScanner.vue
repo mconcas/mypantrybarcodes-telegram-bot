@@ -117,23 +117,24 @@ export default {
         this.scanner = new Html5Qrcode('barcode-reader', { verbose: false })
 
         const config = {
-          fps: 30,
+          fps: 15,
           qrbox: (w, h) => {
-            const side = Math.min(w, h) * 0.85
+            const side = Math.min(w, h) * 0.75
             return { width: Math.floor(side), height: Math.floor(side * 0.45) }
           },
           disableFlip: false,
-          videoConstraints: {
-            facingMode: 'environment',
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
-            focusMode: { ideal: 'continuous' },
-            zoom: { ideal: 1.5 },
-          },
+          formatsToSupport: [0, 3, 4, 7, 8, 11],
+          experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+        }
+
+        const videoConstraints = {
+          facingMode: 'environment',
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
         }
 
         await this.scanner.start(
-          config.videoConstraints,
+          videoConstraints,
           config,
           this.onScanSuccess,
           () => { /* scan-in-progress errors — ignore */ }
@@ -157,12 +158,14 @@ export default {
         this.scanner = new Html5Qrcode('barcode-reader', { verbose: false })
 
         const config = {
-          fps: 20,
+          fps: 15,
           qrbox: (w, h) => {
-            const side = Math.min(w, h) * 0.85
+            const side = Math.min(w, h) * 0.75
             return { width: Math.floor(side), height: Math.floor(side * 0.45) }
           },
           disableFlip: false,
+          formatsToSupport: [0, 3, 4, 7, 8, 11],
+          experimentalFeatures: { useBarCodeDetectorIfSupported: true },
         }
 
         await this.scanner.start(
@@ -277,6 +280,14 @@ export default {
 }
 .camera-container :deep(#barcode-reader__scan_region) {
   min-height: 250px;
+}
+/* Hide the built-in scan region box to prevent overlap with our custom overlay */
+.camera-container :deep(#barcode-reader__scan_region img),
+.camera-container :deep(#barcode-reader__scan_region > br) {
+  display: none !important;
+}
+.camera-container :deep(#qr-shaded-region) {
+  display: none !important;
 }
 .camera-container :deep(#barcode-reader__dashboard_section),
 .camera-container :deep(#barcode-reader__dashboard_section_swaplink),

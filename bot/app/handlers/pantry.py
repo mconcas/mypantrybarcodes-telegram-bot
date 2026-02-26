@@ -116,16 +116,20 @@ async def pantry_category_cb(update: Update, context: ContextTypes.DEFAULT_TYPE)
         lines.append(f"{verified_mark} *{name}* × {info['quantity']}")
         rows.append([
             InlineKeyboardButton(
-                f"🗑️ {name[:30]}",
+                f"➕ {name[:20]}",
+                callback_data=f"pantry:add:{bc}:{category}",
+            ),
+            InlineKeyboardButton(
+                f"🗑️ {name[:20]}",
                 callback_data=f"pantry:del:{bc}:{category}",
-            )
+            ),
         ])
 
     rows.append([InlineKeyboardButton("⬅️ Back to Pantry", callback_data="menu:pantry")])
 
     text = f"📦 *{category}* ({len(grouped)} product{'s' if len(grouped) != 1 else ''}):\n\n"
     text += "\n".join(lines)
-    text += "\n\nTap an item to remove one unit."
+    text += "\n\nUse ➕ to add one unit or 🗑️ to remove one."
 
     await query.edit_message_text(
         text,
@@ -156,4 +160,40 @@ async def pantry_delete_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     # Refresh the category view
     # Re-dispatch to pantry_category_cb by faking the callback data
     query.data = f"pantry:cat:{category}" if category else "menu:pantry"
+    await pantry_category_cb(update, context)
+
+
+async def pantry_add_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Add one more unit of an existing item by barcode."""
+    query = update.callback_query
+    assert query is not None
+    await query.answer()
+
+    # callback_data: "pantry:add:<barcode>:<category>"
+    parts = query.data.split(":")  # type: ignore[union-attr]
+    barcode = parts[2]
+    category = ":".join(parts[3:]) if len(parts) > 3 else "Pantry"
+
+    owner = _owner_id(update)
+    # Find existing item to copy its product_name / verified status
+    existing = _os(context).find_items_by_barcode(owner, barcode, category=category)
+    if existing:
+        product_name = existing[0].get("product_name", f"Unknown ({barcode})")
+        verified = existing[0].get("verified", False)
+    else:
+        product_name = f"Unknown ({barcode})"
+        verified = False
+
+    _os(context).add_item(
+        owner_id=owner,
+        barcode=barcode,
+        product_name=product_name,
+        category=category,
+        quantity=1,
+        verified=verified,
+    )
+    await query.answer("➕ Added one unit", show_alert=False)
+
+    # Refresh the category view
+    query.data = f"pantry:cat:{category}"
     await pantry_category_cb(update, context)

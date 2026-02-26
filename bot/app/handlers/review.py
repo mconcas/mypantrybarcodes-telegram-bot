@@ -63,6 +63,7 @@ async def review_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             InlineKeyboardButton("✏️ Rename", callback_data=f"rev:rename:{item['barcode']}"),
         ],
         [
+            InlineKeyboardButton("🗑️ Remove", callback_data=f"rev:remove:{item['barcode']}"),
             InlineKeyboardButton("⏭️ Skip", callback_data="rev:skip"),
             InlineKeyboardButton("❌ Done", callback_data="rev:done"),
         ],
@@ -98,6 +99,15 @@ async def review_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     if action == "ok":
         count = _os(context).verify_items_by_barcode(owner, barcode)
         await query.answer(f"✅ Verified {count} item(s)", show_alert=False)
+        # Show next
+        await review_command(update, context)
+        return None
+
+    if action == "remove":
+        items = _os(context).find_items_by_barcode(owner, barcode)
+        for item in items:
+            _os(context).delete_item(item["id"], owner)
+        await query.answer(f"🗑️ Removed {len(items)} item(s)", show_alert=False)
         # Show next
         await review_command(update, context)
         return None

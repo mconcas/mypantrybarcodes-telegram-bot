@@ -8,6 +8,8 @@ from telegram.ext import (
     ApplicationBuilder,
     CallbackQueryHandler,
     CommandHandler,
+    MessageHandler,
+    filters,
 )
 
 from app.config import LOG_LEVEL, OPENSEARCH_HOST, OPENSEARCH_PORT, TELEGRAM_BOT_TOKEN
@@ -17,6 +19,7 @@ from app.handlers.categories import (
     category_delete_cb,
 )
 from app.handlers.pantry import (
+    pantry_add_cb,
     pantry_category_cb,
     pantry_command,
     pantry_delete_cb,
@@ -70,6 +73,7 @@ def main() -> None:
     app.add_handler(CallbackQueryHandler(review_command, pattern=r"^menu:review$"))
 
     app.add_handler(CallbackQueryHandler(pantry_category_cb, pattern=r"^pantry:cat:"))
+    app.add_handler(CallbackQueryHandler(pantry_add_cb, pattern=r"^pantry:add:"))
     app.add_handler(CallbackQueryHandler(pantry_delete_cb, pattern=r"^pantry:del:"))
 
     app.add_handler(CallbackQueryHandler(category_delete_cb, pattern=r"^catdel:"))
@@ -77,6 +81,17 @@ def main() -> None:
     app.add_handler(CallbackQueryHandler(review_action_cb, pattern=r"^rev:"))
 
     app.add_handler(CallbackQueryHandler(menu_callback, pattern=r"^menu:"))
+
+    # 6. Reply keyboard text button handlers
+    app.add_handler(MessageHandler(
+        filters.Regex(r"^🗄️ Pantry$"), pantry_command
+    ))
+    app.add_handler(MessageHandler(
+        filters.Regex(r"^📂 Categories$"), categories_command
+    ))
+    app.add_handler(MessageHandler(
+        filters.Regex(r"^🔍 Review$"), review_command
+    ))
 
     logger.info("Starting polling …")
     app.run_polling(drop_pending_updates=True)

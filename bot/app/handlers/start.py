@@ -60,7 +60,14 @@ def scanner_reply_keyboard(mode: str = "add") -> ReplyKeyboardMarkup | None:
     url = f"{WEBAPP_URL}?mode={mode}" if "?" not in WEBAPP_URL else f"{WEBAPP_URL}&mode={mode}"
     return ReplyKeyboardMarkup(
         [
-            [KeyboardButton(f"📷 Scan to {'Add' if mode == 'add' else 'Remove'}", web_app=WebAppInfo(url=url))],
+            [
+                KeyboardButton("🗄️ Pantry"),
+                KeyboardButton("📂 Categories"),
+                KeyboardButton("🔍 Review"),
+            ],
+            [
+                KeyboardButton(f"📷 Scan to {'Add' if mode == 'add' else 'Remove'}", web_app=WebAppInfo(url=url)),
+            ],
         ],
         resize_keyboard=True,
     )
@@ -101,6 +108,15 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         "and scan again when you use them up to remove them.\n\n"
         "Choose an option below:"
     )
+    if is_private:
+        reply_kb = scanner_reply_keyboard("add")
+        if reply_kb:
+            await update.message.reply_text(  # type: ignore[union-attr]
+                text,
+                reply_markup=reply_kb,
+                parse_mode="Markdown",
+            )
+            return
     await update.message.reply_text(  # type: ignore[union-attr]
         text,
         reply_markup=main_menu_keyboard(
@@ -110,13 +126,6 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         ),
         parse_mode="Markdown",
     )
-    if is_private:
-        reply_kb = scanner_reply_keyboard("add")
-        if reply_kb:
-            await update.message.reply_text(  # type: ignore[union-attr]
-                "⬇️ Use the button below to scan items anytime:",
-                reply_markup=reply_kb,
-            )
 
 
 async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
