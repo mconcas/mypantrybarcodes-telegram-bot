@@ -76,7 +76,8 @@ async def pantry_category_cb(update: Update, context: ContextTypes.DEFAULT_TYPE)
     """Show items in a specific category."""
     query = update.callback_query
     assert query is not None
-    await query.answer()
+    if not context.user_data.pop("_skip_answer", False):
+        await query.answer()
 
     # Extract category — callback_data is "pantry:cat:<name>"
     category = ":".join(query.data.split(":")[2:])  # type: ignore[union-attr]
@@ -142,7 +143,6 @@ async def pantry_delete_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     """Delete one unit of an item by barcode."""
     query = update.callback_query
     assert query is not None
-    await query.answer()
 
     # callback_data: "pantry:del:<barcode>:<category>"
     parts = query.data.split(":")  # type: ignore[union-attr]
@@ -157,8 +157,8 @@ async def pantry_delete_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     else:
         await query.answer("❌ Item not found", show_alert=True)
 
-    # Refresh the category view
-    # Re-dispatch to pantry_category_cb by faking the callback data
+    # Refresh the category view — skip answer since we already answered above
+    context.user_data["_skip_answer"] = True
     query.data = f"pantry:cat:{category}" if category else "menu:pantry"
     await pantry_category_cb(update, context)
 
@@ -167,7 +167,6 @@ async def pantry_add_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     """Add one more unit of an existing item by barcode."""
     query = update.callback_query
     assert query is not None
-    await query.answer()
 
     # callback_data: "pantry:add:<barcode>:<category>"
     parts = query.data.split(":")  # type: ignore[union-attr]
@@ -194,6 +193,7 @@ async def pantry_add_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     )
     await query.answer("➕ Added one unit", show_alert=False)
 
-    # Refresh the category view
+    # Refresh the category view — skip answer since we already answered above
+    context.user_data["_skip_answer"] = True
     query.data = f"pantry:cat:{category}"
     await pantry_category_cb(update, context)

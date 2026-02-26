@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import ForceReply, InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (
     CallbackQueryHandler,
     CommandHandler,
@@ -105,16 +105,29 @@ async def category_delete_cb(update: Update, context: ContextTypes.DEFAULT_TYPE)
 async def add_category_entry(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Ask the user for a category name."""
     query = update.callback_query
+    is_group = update.effective_chat and update.effective_chat.type != "private"  # type: ignore[union-attr]
+    prompt = "➕ *New Category*\n\nType the category name (e.g. \"Bathroom\"):"
+
     if query:
         await query.answer()
-        await query.edit_message_text(
-            "➕ *New Category*\n\nType the category name (e.g. \"Bathroom\"):",
-            parse_mode="Markdown",
-        )
+        # In groups, send a new message with ForceReply so the bot receives
+        # the user's response (privacy mode blocks plain text in groups).
+        if is_group:
+            await query.message.reply_text(  # type: ignore[union-attr]
+                prompt,
+                parse_mode="Markdown",
+                reply_markup=ForceReply(selective=True),
+            )
+        else:
+            await query.edit_message_text(
+                prompt,
+                parse_mode="Markdown",
+            )
     else:
         await update.message.reply_text(  # type: ignore[union-attr]
-            "➕ *New Category*\n\nType the category name:",
+            prompt,
             parse_mode="Markdown",
+            reply_markup=ForceReply(selective=True) if is_group else None,
         )
     return NEW_CATEGORY_NAME
 

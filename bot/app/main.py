@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 
+from telegram import BotCommand, BotCommandScopeAllGroupChats, BotCommandScopeAllPrivateChats
 from telegram.ext import (
     ApplicationBuilder,
     CallbackQueryHandler,
@@ -48,7 +49,20 @@ def main() -> None:
     logger.info("OpenSearch ready")
 
     # ── Telegram application ──────────────────────────────────────────
-    app = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
+    async def post_init(application) -> None:
+        """Register bot commands for the / menu in private and group chats."""
+        commands = [
+            BotCommand("start", "Show main menu"),
+            BotCommand("pantry", "View pantry items by category"),
+            BotCommand("categories", "Manage categories"),
+            BotCommand("review", "Review auto-detected product names"),
+            BotCommand("cancel", "Cancel current operation"),
+        ]
+        await application.bot.set_my_commands(commands, scope=BotCommandScopeAllPrivateChats())
+        await application.bot.set_my_commands(commands, scope=BotCommandScopeAllGroupChats())
+        logger.info("Bot commands registered for private and group chats")
+
+    app = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).post_init(post_init).build()
     app.bot_data["os_client"] = os_client
 
     # 1. WebApp scan conversation (catches WEB_APP_DATA first)
