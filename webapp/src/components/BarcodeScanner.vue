@@ -117,7 +117,7 @@ export default {
         this.scanner = new Html5Qrcode('barcode-reader', { verbose: false })
 
         const config = {
-          fps: 15,
+          fps: 25,
           qrbox: (w, h) => {
             const side = Math.min(w, h) * 0.75
             return { width: Math.floor(side), height: Math.floor(side * 0.45) }
@@ -129,8 +129,10 @@ export default {
 
         const videoConstraints = {
           facingMode: 'environment',
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+          focusMode: { ideal: 'continuous' },
+          zoom: { ideal: 1.5 },
         }
 
         await this.scanner.start(
@@ -158,7 +160,7 @@ export default {
         this.scanner = new Html5Qrcode('barcode-reader', { verbose: false })
 
         const config = {
-          fps: 15,
+          fps: 25,
           qrbox: (w, h) => {
             const side = Math.min(w, h) * 0.75
             return { width: Math.floor(side), height: Math.floor(side * 0.45) }
@@ -183,18 +185,30 @@ export default {
     },
 
     applyAutofocus() {
+      // Small delay to let the camera stream stabilise before applying constraints
+      setTimeout(() => this._doApplyAutofocus(), 300)
+    },
+
+    _doApplyAutofocus() {
       try {
         const videoEl = document.querySelector('#barcode-reader video')
         if (!videoEl || !videoEl.srcObject) return
         const track = videoEl.srcObject.getVideoTracks()[0]
         if (!track) return
         const caps = track.getCapabilities?.()
+        const advanced = []
         if (caps?.focusMode?.includes('continuous')) {
-          track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] })
+          advanced.push({ focusMode: 'continuous' })
         }
         if (caps?.zoom) {
-          const zoom = Math.min(caps.zoom.max, Math.max(caps.zoom.min, 1.5))
-          track.applyConstraints({ advanced: [{ zoom }] })
+          const zoom = Math.min(caps.zoom.max, Math.max(caps.zoom.min, 2.0))
+          advanced.push({ zoom })
+        }
+        if (caps?.torch !== undefined) {
+          // Don't enable torch, but ensure it's available for future use
+        }
+        if (advanced.length) {
+          track.applyConstraints({ advanced })
         }
       } catch { /* not supported — ok */ }
     },
